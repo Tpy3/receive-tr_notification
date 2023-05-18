@@ -61,6 +61,11 @@ def process_payload(payload_str, cryptocurrency_name):
 app = FastAPI()
 
 
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
 @app.post("/tom-tradingview-webhook/{param}")
 async def tradingview_webhook(request: Request, param: str):
     try:
