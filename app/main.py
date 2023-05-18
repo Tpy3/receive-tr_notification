@@ -4,14 +4,33 @@ import os
 
 import chardet
 import requests
+from colorlog import ColoredFormatter
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 
 load_dotenv()
 LINE_NOTIFY_TOKEN = os.getenv("LINE_NOTIFY_TOKEN")
 
-logging.basicConfig(level=logging.INFO)
+formatter = ColoredFormatter(
+    "%(log_color)s[%(levelname)s]%(reset)s %(asctime)s %(message)s",
+    log_colors={
+        "DEBUG": "blue",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "red,bg_white",
+    },
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+
+
 logger = logging.getLogger(__name__)
+logger.addHandler(console_handler)
+logger.setLevel(logging.INFO)
 
 
 def line_notify(token, msg):
@@ -43,7 +62,7 @@ def process_payload(payload_str, cryptocurrency_name):
                     "價位": message_list[3],
                 },
             ),
-            f"{cryptocurrency_name}\n策略名稱:{message_list[0]}\n操作:{'📈' if '多方' in message_list[1] else '📉'}{message_list[1]}\n時間:{message_list[2]}\n價位:{message_list[3]}",
+            f"\n{cryptocurrency_name}\n策略名稱:{message_list[0]}\n操作:{'📈' if '多方' in message_list[1] else '📉'}{message_list[1]}\n時間:{message_list[2]}\n價位:{message_list[3]}",
         )
     elif len(message_list) == 3:  # 九轉
         return (
@@ -52,7 +71,7 @@ def process_payload(payload_str, cryptocurrency_name):
                 "時間": message_list[1],
                 "九轉": message_list[2],
             },
-            f"{cryptocurrency_name}\n策略名稱:{message_list[0]}\n時間:{message_list[1]}\n九轉:{message_list[2]}",
+            f"\n{cryptocurrency_name}\n策略名稱:{message_list[0]}\n時間:{message_list[1]}\n九轉:{message_list[2]}",
         )
     else:
         raise ValueError("Invalid payload format")
@@ -74,7 +93,7 @@ async def tradingview_webhook(request: Request, param: str):
         payload_str = payload_bytes.decode(detected_encoding).replace('"', "")
 
         if "｜" in payload_str:
-            payload, msg = process_payload(payload_str)
+            payload, msg = process_payload(payload_str, param)
         else:
             raise ValueError("Invalid payload format")
 
